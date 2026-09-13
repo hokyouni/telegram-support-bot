@@ -58,8 +58,7 @@ def _lookup(context: ContextTypes.DEFAULT_TYPE, group_message_id: int):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not update.message:
         return
-    name = update.effective_user.first_name if update.effective_user else ""
-    await update.message.reply_text(f"{WELCOME_MESSAGE} {name}".strip())
+    await update.message.reply_text(WELCOME_MESSAGE)
 
 
 async def forward_to_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
