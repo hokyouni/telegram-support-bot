@@ -1,0 +1,39 @@
+name: telegram-support-bot
+
+services:
+  bot:
+    image: ghcr.io/hokyouni/telegram-support-bot:latest
+    build: .
+    container_name: telegram-support-bot
+    restart: unless-stopped
+    init: true
+    env_file:
+      - .env
+    environment:
+      TZ: Asia/Shanghai
+      FORWARD_MODE: support_chat
+    volumes:
+      - ./data:/data
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: "0.25"
+    pids_limit: 64
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+    networks:
+      - tgbot
+
+networks:
+  tgbot:
+    driver: bridge

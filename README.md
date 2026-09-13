@@ -1,46 +1,49 @@
 # telegram-support-bot
-Easy way to use Telegram bot to hide your identity. Useful for support, anonymous channel management. Free clone of Livegram Bot. 
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy)
+Fork of [ohld/telegram-support-bot](https://github.com/ohld/telegram-support-bot): a Telegram bot that forwards private messages to a support chat and copies replies back to the user.
 
-## How bot works:
+This fork adds Docker, a public GHCR image, Watchtower-friendly tags, persistent reply mapping, and forwarding for media as well as text.
 
-1. Your client write a message to your bot
-2. Bot forwards the message to your secret chat
-3. Any chat participant can reply on a forwarded message
-4. Bot will copy the message and send it to your client
+Image: `ghcr.io/hokyouni/telegram-support-bot:latest` (`linux/amd64`, `linux/arm64`)
 
-## .env variables
+## How it works
 
-You need to specify these env variables to run this bot. If you run it locally, you can also write them in `.env` text file.
+1. A user messages the bot privately.
+2. The bot forwards the message to your support chat.
+3. Reply to that forwarded message in the support chat.
+4. The bot copies the reply back to the user.
 
-``` bash
-TELEGRAM_TOKEN=  # your bot's token
-TELEGRAM_SUPPORT_CHAT_ID=  # chat_id where the bot will forward all incoming messages
+## Environment
 
-# optional params
-HEROKU_APP_NAME=  # name of your Heroku app for webhook setup
-WELCOME_MESSAGE=  # text of a message that bot will write on /start command
+Copy `.env.example` to `.env`. Token and chat IDs stay on the host; they are not in the image.
 
-# If user don't allow forward his messages Bot adds his comment with thue user_id to reply
-# Support team must reply to "bot reply", not to original user forwarded message
-# Customize message for support team here:
-REPLY_TO_THIS_MESSAGE=User above don't allow forward his messages. Reply to this message.
-# If support reply to forwarded messages with hidded sender, bor warns with next error:
-WRONG_REPLY=User above don't allow forward his messages. You must reply to bot reply under user forwarded message.
-
+```bash
+TELEGRAM_TOKEN=                 # from @BotFather
+TELEGRAM_SUPPORT_CHAT_ID=       # group/supergroup id, usually -100...
+PERSONAL_ACCOUNT_CHAT_ID=       # optional; defaults to the support chat
+FORWARD_MODE=support_chat       # or personal_account
+WELCOME_MESSAGE=你好，请直接发送消息，我们会尽快回复。
 ```
 
-## Run bot locally
+The bot must be a member of the support chat (admin recommended). Staff must **reply** to the forwarded message.
 
-First, you need to install all dependencies:
+## Docker
+
+```bash
+cp .env.example .env
+# fill TELEGRAM_TOKEN and TELEGRAM_SUPPORT_CHAT_ID
+mkdir -p data
+docker compose pull
+docker compose up -d
+```
+
+The compose file publishes no ports (long polling only), drops capabilities, uses a read-only root filesystem, and sets `com.centurylinklabs.watchtower.enable=true`.
+
+Watchtower can pull `ghcr.io/hokyouni/telegram-support-bot:latest` on hosts that already watch labeled containers.
+
+## Run without Docker
 
 ```bash
 pip install -r requirements.txt
-```
-
-Then you can run the bot. Don't forget to create `.env` file in the root folder with all required params (read above).
-
-``` bash
 python main.py
 ```

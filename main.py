@@ -1,69 +1,59 @@
 import asyncio
 import logging
 import signal
+
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
-from handlers import start, forward_to_group, forward_to_user
-from settings import TELEGRAM_TOKEN, TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
+from handlers import forward_to_group, forward_to_user, start
+from settings import PERSONAL_ACCOUNT_CHAT_ID, TELEGRAM_SUPPORT_CHAT_ID, TELEGRAM_TOKEN
 
-# Create an event to signal when to stop the bot
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 stop_event = asyncio.Event()
 
 
-async def main():
-    # Initialize bot and application
+async def main() -> None:
     application = Application.builder().token(TELEGRAM_TOKEN).build()
+    support_chats = list(
+        {chat_id for chat_id in (TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID) if chat_id}
+    )
 
-    # Register handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & ~filters.COMMAND
-            & ~filters.Chat(
-                chat_id=[TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID]
-            ),
+            ~filters.COMMAND
+            & filters.ChatType.PRIVATE
+            & ~filters.Chat(chat_id=support_chats),
             forward_to_group,
         )
     )
     application.add_handler(
         MessageHandler(
-            filters.TEXT
-            & filters.Chat(chat_id=[TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID])
-            & filters.REPLY,
+            ~filters.COMMAND & filters.Chat(chat_id=support_chats) & filters.REPLY,
             forward_to_user,
         )
     )
+    logging.info("Handlers registered for support chats %s", support_chats)
 
-    logging.info("Handlers registered.")
-
-    # Set up signal handlers
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
-        loop.add_signal_handler(sig, lambda: asyncio.create_task(shutdown(application)))
+        loop.add_signal_handler(sig, stop_event.set)
 
-    # Start the bot
     await application.initialize()
     await application.start()
     await application.updater.start_polling(allowed_updates=Update.ALL_TYPES)
-
-    logging.info("Bot started. Press Ctrl+C to stop.")
-
-    # Wait until the stop event is set
+    logging.info("Bot started")
     await stop_event.wait()
-
-    # Stop the bot gracefully
+    logging.info("Stopping")
+    await application.updater.stop()
     await application.stop()
     await application.shutdown()
-
-
-async def shutdown(application: Application):
-    """Gracefully shut down the application."""
-    logging.info("Received stop signal, shutting down...")
-    stop_event.set()
 
 
 if __name__ == "__main__":

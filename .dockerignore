@@ -1,0 +1,13 @@
+.git
+.github
+.env
+.env.*
+data
+*.md
+.gitignore
+.dockerignore
+compose.yaml
+compose.yml
+Procfile
+app.json
+LICENSE
