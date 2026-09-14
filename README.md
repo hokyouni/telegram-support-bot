@@ -27,6 +27,14 @@ WELCOME_MESSAGE=你好，请直接发送消息，我们会尽快回复。
 
 The bot must be a member of the support chat (admin recommended). Staff must **reply** to the forwarded message.
 
+Support-group administrators can change the `/start` welcome text in a private chat with the bot:
+
+- `/welcome` — show the current text
+- `/setwelcome` — then send the new text, or `/setwelcome 新文案`
+- `/cancel` — abort
+
+The live text is stored in `/data/config.json`. `WELCOME_MESSAGE` is only the fallback if nothing has been set yet. Extra user IDs can be added with `ADMIN_USER_IDS`.
+
 ## Docker
 
 ```bash

@@ -21,6 +21,12 @@ WELCOME_MESSAGE = os.getenv(
 )
 FORWARD_MODE = os.getenv("FORWARD_MODE", "support_chat")
 
+ADMIN_USER_IDS = set()
+for _part in os.getenv("ADMIN_USER_IDS", "").split(","):
+    _part = _part.strip()
+    if _part.lstrip("-").isdigit():
+        ADMIN_USER_IDS.add(int(_part))
+
 PERSONAL_ACCOUNT_CHAT_ID = os.getenv("PERSONAL_ACCOUNT_CHAT_ID")
 if PERSONAL_ACCOUNT_CHAT_ID and str(PERSONAL_ACCOUNT_CHAT_ID).lstrip("-").isdigit():
     PERSONAL_ACCOUNT_CHAT_ID = int(PERSONAL_ACCOUNT_CHAT_ID)

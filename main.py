@@ -5,7 +5,7 @@ import signal
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters
 
-from handlers import forward_to_group, forward_to_user, start
+from handlers import cancel, forward_to_group, forward_to_user, setwelcome, start, welcome
 from settings import PERSONAL_ACCOUNT_CHAT_ID, TELEGRAM_SUPPORT_CHAT_ID, TELEGRAM_TOKEN
 
 logging.basicConfig(
@@ -25,6 +25,9 @@ async def main() -> None:
     )
 
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("welcome", welcome))
+    application.add_handler(CommandHandler("setwelcome", setwelcome))
+    application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(
         MessageHandler(
             ~filters.COMMAND
