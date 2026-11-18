@@ -11,3 +11,6 @@ compose.yml
 Procfile
 app.json
 LICENSE
+tests
+__pycache__
+*.pyc

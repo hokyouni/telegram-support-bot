@@ -3,10 +3,28 @@ import logging
 import signal
 
 from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    MessageHandler,
+    MessageReactionHandler,
+    filters,
+)
 
-from handlers import cancel, forward_to_group, forward_to_user, setwelcome, start, welcome
-from settings import PERSONAL_ACCOUNT_CHAT_ID, TELEGRAM_SUPPORT_CHAT_ID, TELEGRAM_TOKEN
+from handlers import (
+    cancel,
+    edit_to_group,
+    edit_to_user,
+    error_handler,
+    forward_to_group,
+    forward_to_user,
+    setwelcome,
+    start,
+    support_chat_ids,
+    sync_reaction,
+    welcome,
+)
+from settings import TELEGRAM_TOKEN
 
 logging.basicConfig(
     level=logging.INFO,
@@ -19,10 +37,16 @@ stop_event = asyncio.Event()
 
 
 async def main() -> None:
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-    support_chats = list(
-        {chat_id for chat_id in (TELEGRAM_SUPPORT_CHAT_ID, PERSONAL_ACCOUNT_CHAT_ID) if chat_id}
+    application = (
+        Application.builder()
+        .token(TELEGRAM_TOKEN)
+        .connect_timeout(10.0)
+        .read_timeout(20.0)
+        .write_timeout(20.0)
+        .pool_timeout(10.0)
+        .build()
     )
+    support_chats = list(support_chat_ids())
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("welcome", welcome))
@@ -30,7 +54,7 @@ async def main() -> None:
     application.add_handler(CommandHandler("cancel", cancel))
     application.add_handler(
         MessageHandler(
-            ~filters.COMMAND
+            filters.UpdateType.MESSAGE
             & filters.ChatType.PRIVATE
             & ~filters.Chat(chat_id=support_chats),
             forward_to_group,
@@ -38,10 +62,28 @@ async def main() -> None:
     )
     application.add_handler(
         MessageHandler(
-            ~filters.COMMAND & filters.Chat(chat_id=support_chats) & filters.REPLY,
+            filters.UpdateType.MESSAGE
+            & filters.Chat(chat_id=support_chats)
+            & filters.REPLY,
             forward_to_user,
         )
     )
+    application.add_handler(
+        MessageHandler(
+            filters.UpdateType.EDITED_MESSAGE
+            & filters.ChatType.PRIVATE
+            & ~filters.Chat(chat_id=support_chats),
+            edit_to_group,
+        )
+    )
+    application.add_handler(
+        MessageHandler(
+            filters.UpdateType.EDITED_MESSAGE & filters.Chat(chat_id=support_chats),
+            edit_to_user,
+        )
+    )
+    application.add_handler(MessageReactionHandler(sync_reaction))
+    application.add_error_handler(error_handler)
     logging.info("Handlers registered for support chats %s", support_chats)
 
     loop = asyncio.get_running_loop()
